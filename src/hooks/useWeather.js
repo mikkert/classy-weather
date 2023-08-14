@@ -70,7 +70,7 @@ export function useWeather(location) {
                 }
             }
 
-            if (location?.length < 2 && !weather.weathercode) {
+            if (location?.length < 2 || !weather.weathercode) {
                 setWeather({})
                 setError(false)
             }
