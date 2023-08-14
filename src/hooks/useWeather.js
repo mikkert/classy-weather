@@ -18,9 +18,7 @@ export function useWeather(location) {
             async function fetchWeather(location) {
                 try {
                     if (location?.length > 1) {
-                        setIsLoading(true)
                         setError(false)
-
                         // 1) Getting location (geocoding)
                         const geoRes = await fetch(
                             `https://geocoding-api.open-meteo.com/v1/search?name=${location}`,
@@ -37,23 +35,30 @@ export function useWeather(location) {
                             timezone,
                             name,
                             country_code,
+                            id,
                         } = geoData.results.at(0)
 
-                        // 2) Getting actual weather
-                        const weatherRes = await fetch(
-                            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`,
-                            { signal: controller.signal },
-                        )
-                        const weatherData = await weatherRes.json()
-                        weatherData.daily = {
-                            ...weatherData.daily,
-                            displayLocation: `${name} ${convertToFlag(
-                                country_code,
-                            )}`,
-                            locationName: name,
-                        }
+                        // Only start fetching if the location is different
+                        if (Number(weather.id) !== Number(id)) {
+                            setIsLoading(true)
 
-                        setWeather(weatherData.daily)
+                            // 2) Getting actual weather
+                            const weatherRes = await fetch(
+                                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`,
+                                { signal: controller.signal },
+                            )
+                            const weatherData = await weatherRes.json()
+                            weatherData.daily = {
+                                ...weatherData.daily,
+                                displayLocation: `${name} ${convertToFlag(
+                                    country_code,
+                                )}`,
+                                locationName: location.toLowerCase(),
+                                id,
+                            }
+
+                            setWeather(weatherData.daily)
+                        }
                     }
                 } catch (err) {
                     if (err.name !== 'AbortError') {
@@ -67,19 +72,24 @@ export function useWeather(location) {
 
             if (location?.length < 2 && !weather.weathercode) {
                 setWeather({})
-                setError(null)
+                setError(false)
             }
 
-            if (location.toLowerCase() !== weather.locationName.toLowerCase()) {
-                fetchWeather(location)
-            }
+            // if (location?.toLowerCase() !== weather?.locationName)
+            fetchWeather(location)
         }, ms)
 
         return () => {
             controller.abort()
             clearTimeout(timer)
         }
-    }, [location, setWeather, weather.weathercode, weather.locationName])
+    }, [
+        location,
+        setWeather,
+        weather.weathercode,
+        weather.locationName,
+        weather.id,
+    ])
 
     return { weather, isLoading, error }
 }
