@@ -75,7 +75,6 @@ export function useWeather(location) {
                 setError(false)
             }
 
-            // if (location?.toLowerCase() !== weather?.locationName)
             fetchWeather(location)
         }, ms)
 
